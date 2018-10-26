@@ -1089,7 +1089,7 @@ handle_new_txs(S, Msg) ->
     try
         #{ txs := EncSignedTxs } = Msg,
         SignedTxs = [ aetx_sign:deserialize_from_binary(Tx) || Tx <- EncSignedTxs ],
-        [ aec_tx_pool:push(SignedTx, tx_received) || SignedTx <- SignedTxs ]
+        spawn(fun() -> [ aec_tx_pool:push(SignedTx, tx_received) || SignedTx <- SignedTxs ] end)
     catch _:_ ->
         ok
     end,
