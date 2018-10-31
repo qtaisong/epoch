@@ -98,14 +98,14 @@ call_dynamic_gas(State) ->
 call_dynamic_gas_components(State) ->
     Gas = aevm_eeevm_state:gas(State),
     Us0 = peek(0, State),
-    %%Us1 = peek(1, State), %% TODO: Needed for CNEW.
+    %% There is no way to call a non-existing/new account in aeternity,
+    %% any such call would fail, hence there is no CNEW fee, as in EVM.
     Us2 = peek(2, State),
-    CNew = 0, %% TODO: Is this a new account?
     CXfer = case Us2 =:= 0 of
                 true  -> 0;
                 false -> ?GCALLVALUE
             end,
-    CExtra = CNew + CXfer + ?GCALL,
+    CExtra = CXfer + ?GCALL,
     CGascap = case Gas >= CExtra of
                   true  -> min(all_but_one_64th(Gas - CExtra), Us0);
                   false -> Us0 %% TODO Can this case ever happen without causing out-of-gas when subtracting CExtra?
