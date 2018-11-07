@@ -115,9 +115,9 @@ mining:
     beneficiary_reward_delay: 2
     cuckoo:
         miner:
-            executable: mean16s-generic
-            extra_args: "-t 5"
-            node_bits: 16
+            executable: mean15-generic
+            extra_args: ""
+            edge_bits: 15
 """
     return install_user_config(root_dir, file_name, conf)
 
@@ -135,9 +135,9 @@ mining:
     beneficiary_reward_delay: 2
     cuckoo:
         miner:
-            executable: mean16s-generic
-            extra_args: "-t 5"
-            node_bits: 16
+            executable: mean15-generic
+            extra_args: ""
+            edge_bits: 15
 """.format(beneficiary['enc_pubk'])
     return install_user_config(root_dir, file_name, conf)
 
