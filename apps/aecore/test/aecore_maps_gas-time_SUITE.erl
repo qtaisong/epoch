@@ -101,7 +101,7 @@ gas(Config) ->
     {TxHash, ContractId} = create_contract_tx(N1, Code, CallData, 2),
     ct:log("Waiting for tx: ~p", [TxHash]),
     Txs0 = [TxHash, TxHashRem],
-    {ok, _} = aecore_suite_utils:mine_blocks_until_txs_on_chain(N1, Txs0, 2),
+    {ok, _} = aecore_suite_utils:mine_blocks_until_txs_on_chain(N1, Txs0, 3),
 
     ct:log("Contract Info ~p\n ~p", [get_contract_object(N1, ContractId), get_contract_object(N1, ContractIdRem)]),
     InitCall = contract_object(N1, TxHash),       
