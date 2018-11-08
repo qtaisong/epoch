@@ -313,7 +313,7 @@ jobs:
 
   test:
     <<: *container_config
-    parallelism: 2
+    parallelism: 4
     steps:
       - checkout
       - *restore_rebar_cache
