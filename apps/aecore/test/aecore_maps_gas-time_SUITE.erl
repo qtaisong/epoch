@@ -104,8 +104,7 @@ gas(Config) ->
     {ok, _} = aecore_suite_utils:mine_blocks_until_txs_on_chain(N1, Txs0, 3),
 
     ct:log("Contract Info ~p\n ~p", [get_contract_object(N1, ContractId), get_contract_object(N1, ContractIdRem)]),
-    InitCall = contract_object(N1, TxHash),       
-    ct:log("Contract Init call ~p", [InitCall]),
+    ct:log("Contract Init call ~p and ~p", [contract_object(N1, TxHashRem), contract_object(N1, TxHash)]),
 
     CostCreate = InitialBalance - balance(N1),
     ct:log("Paid for create: ~p", [CostCreate]),
@@ -118,7 +117,7 @@ gas(Config) ->
     ct:log("CallData ~p\n", [CallData2]),
 
     BeforeCall = balance(N1),
-    Txs2 = add_call_contract_txs(N1, ContractId, CallData2, 10000, 50, length(Txs0) + length(Txs1) + 1),
+    Txs2 = add_call_contract_txs(N1, ContractId, CallData2, 100000, 50, length(Txs0) + length(Txs1) + 1),
     ct:log("filled pool with ~p call contracts\n", [length(Txs2)]),
 
     {ok, Blocks} = aecore_suite_utils:mine_blocks_until_txs_on_chain(N1, [lists:last(Txs2)], 4),
@@ -137,7 +136,7 @@ gas(Config) ->
     ct:log("CallData f_loop ~p\n", [CallData3]),
 
     BeforeCall2 = balance(N1),
-    Txs3 = add_call_contract_txs(N1, ContractId, CallData3, 10000, 50, length(Txs0) + length(Txs1) + length(Txs2) + 1),
+    Txs3 = add_call_contract_txs(N1, ContractId, CallData3, 100000, 50, length(Txs0) + length(Txs1) + length(Txs2) + 1),
     ct:log("filled pool with ~p call contracts\n", [length(Txs3)]),
 
     {ok, Blocks2} = aecore_suite_utils:mine_blocks_until_txs_on_chain(N1, [lists:last(Txs3)], 4),
@@ -206,8 +205,8 @@ add_spend_tx(Node, Payload, Nonce, Sender, Recipient) ->
                 payload      => Payload,
                 fee          => 1 },
     {ok, Tx} = aec_spend_tx:new(Params),
-    io:format("gas for spend_tx: ~p\n", [aetx:gas(Tx)]),
     STx = aec_test_utils:sign_tx(Tx, maps:get(privkey, Sender)),
+    io:format("gas for spend_tx: ~p\n", [aetx:min_gas(Tx)]),
     ok = rpc:call(Node, aec_tx_pool, push, [STx]),
     aehttp_api_encoder:encode(tx_hash, aetx_sign:hash(STx)).
 
@@ -226,6 +225,7 @@ get_contract_object(Node, Contract) ->
 create_contract_tx(Node, Code, CallData, Nonce) ->
     OwnerKey = maps:get(pubkey, patron()),
     Owner    = aec_id:create(account, OwnerKey),
+    Gas = 2000,
     {ok, CreateTx} = aect_create_tx:new(#{ nonce      => Nonce
                                          , vm_version => 1
                                          , code       => Code
@@ -233,13 +233,13 @@ create_contract_tx(Node, Code, CallData, Nonce) ->
                                          , fee        => 150000
                                          , deposit    => 0
                                          , amount     => 1000
-                                         , gas        => 2000      %% 482 just now
+                                         , gas        => Gas
                                          , owner_id   => Owner
                                          , gas_price  => 2
                                          , ttl        => 10000
                                          }),
-    io:format("gas for creat_tx: ~p", [aetx:gas(CreateTx)]),
     CTx = aec_test_utils:sign_tx(CreateTx, maps:get(privkey, patron())),
+    io:format("gas for create_tx: ~p (+ provided gas ~p)", [aetx:min_gas(CreateTx), Gas]),
     ok = rpc:call(Node, aec_tx_pool, push, [CTx]),
     ContractKey = aect_contracts:compute_contract_pubkey(OwnerKey, Nonce),
     {aehttp_api_encoder:encode(tx_hash, aetx_sign:hash(CTx)), ContractKey}.
@@ -265,8 +265,8 @@ call_contract_tx(Node, Contract, CallData, Gas, Nonce) ->
                                      , call_data   => CallData
                                      , ttl         => 10000
                                      }),
-    io:format("gas for call_tx: ~p", [aetx:gas(CallTx)]),
     CTx = aec_test_utils:sign_tx(CallTx, maps:get(privkey, patron())),
+    io:format("gas for call_tx: ~p (+ ~p gas provided)", [aetx:min_gas(CallTx), Gas]),
     ok = rpc:call(Node, aec_tx_pool, push, [CTx]),
    aehttp_api_encoder:encode(tx_hash, aetx_sign:hash(CTx)).
 
