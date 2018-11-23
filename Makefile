@@ -2,6 +2,7 @@ CORE = rel/epoch/bin/epoch
 VER := $(shell cat VERSION)
 
 EUNIT_VM_ARGS = $(CURDIR)/config/eunit.vm.args
+EUNIT_SYS_CONFIG = $(CURDIR)/config/eunit.sys.config
 EUNIT_TEST_FLAGS ?=
 
 CT_TEST_FLAGS ?=
@@ -177,7 +178,7 @@ REVISION:
 	@git rev-parse HEAD > $@
 
 eunit:
-	@ERL_FLAGS="-args_file $(EUNIT_VM_ARGS)" ./rebar3 do eunit $(EUNIT_TEST_FLAGS)
+	@ERL_FLAGS="-args_file $(EUNIT_VM_ARGS) -config $(EUNIT_SYS_CONFIG)" ./rebar3 do eunit $(EUNIT_TEST_FLAGS)
 
 all-tests: eunit test
 
