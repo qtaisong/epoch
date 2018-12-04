@@ -133,13 +133,16 @@ push(Tx) ->
 -spec push(aetx_sign:signed_tx(), event()) -> ok | {error, atom()}.
 push(Tx, Event = tx_received) ->
     TxHash = safe_tx_hash(Tx),
+    lager:debug("tx_received ~p", [TxHash]),
     case aec_tx_gossip_cache:in_cache(TxHash) of
         true -> ok;
         false ->
             aec_jobs_queues:run(tx_pool_push, fun() -> push_(Tx, TxHash, Event) end)
     end;
 push(Tx, Event = tx_created) ->
-    push_(Tx, safe_tx_hash(Tx), Event).
+    TxHash = safe_tx_hash(Tx),
+    lager:debug("tx_created ~p", [TxHash]),
+    push_(Tx, TxHash, Event).
 
 safe_tx_hash(Tx) ->
     try aetx_sign:hash(Tx)
@@ -149,7 +152,9 @@ safe_tx_hash(Tx) ->
     end.
 
 push_(Tx, TxHash, Event) ->
-    case check_pool_db_put(Tx, TxHash, Event) of
+    Check = check_pool_db_put(Tx, TxHash, Event),
+    lager:debug("check tx push ~p", [Check]),
+    case Check of
         ignore ->
             incr([push, ignore]),
             ok;
