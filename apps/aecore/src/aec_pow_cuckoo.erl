@@ -110,7 +110,7 @@ generate(Hash, Nonce, Target, N) ->
                 Pid
              end || D <- lists:seq(0, N - 1) ],
     Results = [ receive {Pid, Res} -> Res
-                after 10000 -> {error, timeout} end || Pid <- Pids ],
+                after 20000 -> {error, timeout} end || Pid <- Pids ],
     case [ Ok || {ok, _, _} = Ok <- Results ] of
         [Ok | _] -> Ok;
         []       -> {error, no_solution}
