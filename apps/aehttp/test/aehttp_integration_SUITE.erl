@@ -232,8 +232,6 @@
 
 -include_lib("common_test/include/ct.hrl").
 -define(NODE, dev1).
--define(NODE0, dev0).
--define(NODE1, ?NODE).
 -define(DEFAULT_TESTS_COUNT, 5).
 -define(WS, aehttp_ws_test_utils).
 -define(BOGUS_STATE_HASH, <<42:32/unit:8>>).
@@ -611,8 +609,8 @@ init_per_suite(Config) ->
     aecore_suite_utils:create_configs(Config1, #{<<"chain">> =>
                                                  #{<<"persist">> => true,
                                                    <<"hard_forks">> => Forks}}),
-    aecore_suite_utils:make_multi(Config1, [?NODE0, ?NODE1]),
-    [{nodes, [aecore_suite_utils:node_tuple(?NODE1)]}] ++ Config1.
+    aecore_suite_utils:make_multi(Config1, [?NODE]),
+    [{nodes, [aecore_suite_utils:node_tuple(?NODE)]}] ++ Config1.
 
 end_per_suite(_Config) ->
     ok.
@@ -878,28 +876,17 @@ end_per_testcase_all(Config) ->
              || {_,N} <- ?config(nodes, Config)]]),
     ok.
 
-start_node(Group = debug_endpoints, Config) ->
-    start_node_(?NODE0, Group, Config),
-    start_node_(?NODE1, Group, Config),
-    Config;
 start_node(Group, Config) ->
     start_node(proplists:is_defined(node, Config), Group, Config).
 
 start_node(true, _Group, Config) -> Config;
 start_node(false, Group, Config) ->
-    start_node_(?NODE, Group, Config).
-
-start_node_(N, Group, Config) ->
     %% TODO: consider reinint_chain to speed up tests
-    aecore_suite_utils:start_node(N, Config),
-    Node = aecore_suite_utils:node_name(N),
+    aecore_suite_utils:start_node(?NODE, Config),
+    Node = aecore_suite_utils:node_name(?NODE),
     aecore_suite_utils:connect(Node),
     [{node, Node}, {node_start_group, Group} | Config].
 
-stop_node(debug_endpoints, Config) ->
-    stop_node_(?NODE0, Config),
-    stop_node_(?NODE1, Config),
-    ok;
 stop_node(Group, Config) ->
     stop_node(proplists:is_defined(node, Config), Group, Config).
 
@@ -1235,10 +1222,7 @@ get_key_blocks_by_hash_sut(Hash) ->
     http_request(Host, get, "key-blocks/hash/" ++ http_uri:encode(Hash), []).
 
 post_key_blocks_sut(KeyBlock) ->
-    post_key_blocks_sut(?NODE, KeyBlock).
-
-post_key_blocks_sut(Node, KeyBlock) ->
-    Host = internal_address(Node),
+    Host = internal_address(),
     http_request(Host, post, "key-blocks", KeyBlock).
 
 %% /micro-blocks/*
@@ -4900,7 +4884,7 @@ call_a_contract(Function, Argument, ContractPubKey, Code, SenderConnPid,
 
 contract_byte_code(ContractName) ->
     {ok, BinCode} = aect_test_utils:compile_contract(
-                      filename:join(["contracts", 
+                      filename:join(["contracts",
                                      filename:basename(ContractName, ".aes") ++ ".aes"])),
     aehttp_api_encoder:encode(contract_bytearray, BinCode).
 
@@ -4986,24 +4970,24 @@ peers(_Config) ->
     ok.
 
 disabled_debug_endpoints(_Config) ->
-    ?assertMatch(true, rpc(?NODE1, aehttp_app, enable_internal_debug_endpoints, [])),
-    {ok, Internal} = rpc(?NODE1, application, get_env, [aehttp, internal]),
+    ?assertMatch(true, rpc(?NODE, aehttp_app, enable_internal_debug_endpoints, [])),
+    {ok, Internal} = rpc(?NODE, application, get_env, [aehttp, internal]),
     NewInternal = proplists:delete(debug_endpoints, Internal),
-    ok = rpc(?NODE1, application, set_env, [aehttp, internal, NewInternal]),
-    ?assertMatch(false, rpc(?NODE1, aehttp_app, enable_internal_debug_endpoints, [])),
+    ok = rpc(?NODE, application, set_env, [aehttp, internal, NewInternal]),
+    ?assertMatch(false, rpc(?NODE, aehttp_app, enable_internal_debug_endpoints, [])),
 
     %% post_key_blocks_sut should be always enabled
-    ?assertMatch({ok, 400, _}, post_key_blocks_sut(?NODE1, #{})),
-    ?assertMatch({ok, 403, _}, get_peers(?NODE1)),
-    ?assertMatch({ok, 403, _}, get_contract_create(?NODE1, #{})),
+    ?assertMatch({ok, 400, _}, post_key_blocks_sut(#{})),
+    ?assertMatch({ok, 403, _}, get_peers()),
+    ?assertMatch({ok, 403, _}, get_contract_create(#{})),
     ok.
 
 enabled_debug_endpoints(_Config) ->
-    ?assertMatch(true, rpc(?NODE1, aehttp_app, enable_internal_debug_endpoints, [])),
+    ?assertMatch(true, rpc(?NODE, aehttp_app, enable_internal_debug_endpoints, [])),
 
-    ?assertMatch({ok, 400, _}, post_key_blocks_sut(?NODE1, #{})),
-    ?assertMatch({ok, 200, _}, get_peers(?NODE1)),
-    ?assertMatch({ok, 400, _}, get_contract_create(?NODE1, #{})),
+    ?assertMatch({ok, 400, _}, post_key_blocks_sut(#{})),
+    ?assertMatch({ok, 200, _}, get_peers()),
+    ?assertMatch({ok, 400, _}, get_contract_create(#{})),
     ok.
 
 format_args(X) ->
@@ -5020,10 +5004,7 @@ format_arg(I) when is_integer(I) -> integer_to_binary(I).
 %% ============================================================
 
 get_contract_create(Data) ->
-    get_contract_create(?NODE, Data).
-
-get_contract_create(Node, Data) ->
-    Host = internal_address(Node),
+    Host = internal_address(),
     http_request(Host, post, "debug/contracts/create", Data).
 
 get_contract_create_compute(Data) ->
@@ -5174,10 +5155,7 @@ get_peer_pub_key() ->
     http_request(Host, get, "peers/pubkey", []).
 
 get_peers() ->
-    get_peers(?NODE).
-
-get_peers(Node) ->
-    Host = internal_address(Node),
+    Host = internal_address(),
     http_request(Host, get, "debug/peers", []).
 
 get_contract_poi(ContractAddress) ->
@@ -5433,10 +5411,7 @@ external_address() ->
     "http://127.0.0.1:" ++ integer_to_list(Port).     % good enough for requests
 
 internal_address() ->
-    internal_address(?NODE).
-
-internal_address(Node) ->
-    Port = rpc(Node, aeu_env, user_config_or_env,
+    Port = rpc(?NODE, aeu_env, user_config_or_env,
               [ [<<"http">>, <<"internal">>, <<"port">>],
                 aehttp, [internal, port], 8143]),
     "http://127.0.0.1:" ++ integer_to_list(Port).
