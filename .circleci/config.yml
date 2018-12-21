@@ -247,6 +247,7 @@ references:
         docker build -t ${DOCKERHUB_REPO:?}:local .
 
   system_test_logs: &system_test_logs system_test/logs
+  acceptance_test_logs: &acceptance_test_logs acceptance_test/logs
 
   print_system_test_host_info: &print_system_test_host_info
     run:
@@ -589,6 +590,33 @@ jobs:
           path: *system_test_logs
       - store_artifacts:
           path: *system_test_logs
+      - store_artifacts:
+          path: *system_test_host_logs
+
+  docker_acceptance_tests:
+    <<: *machine_config
+    steps:
+      - *print_system_test_host_info
+      - checkout
+      - *install_os_deps
+      - *install_otp
+      - *install_libsodium
+      - *restore_machine_build_cache
+      # keep user preparation step after cache restore because of perms
+      - *prepare_ubuntu_user
+      - *install_system_test_deps
+      - run:
+          name: Acceptance Tests
+          no_output_timeout: 2h
+          command: |
+            sudo -u ubuntu -E -H make acceptance-test
+      - *collect_system_test_host_logs
+      - *fail_notification_system_test
+      - *save_machine_build_cache
+      - store_test_results:
+          path: *acceptance_test_logs
+      - store_artifacts:
+          path: *acceptance_test_logs
       - store_artifacts:
           path: *system_test_host_logs
 
@@ -936,3 +964,15 @@ workflows:
                 - master
     jobs:
       - docker_system_tests
+
+  acceptance_tests:
+    triggers:
+      - schedule:
+          # run after recent main_chain_snapshot has most likely completed
+          cron: "0 3 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - docker_acceptance_tests
