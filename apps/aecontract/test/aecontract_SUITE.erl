@@ -846,7 +846,7 @@ create_contract_with_code(Owner, Code, Args, Options, S) ->
     CreateTx    = aect_test_utils:create_tx(Owner,
                     maps:merge(
                     #{ nonce      => Nonce
-                     , vm_version => ?AEVM_01_Sophia_01
+                     , vm_version => ?CURRENT_AEVM_SOPHIA
                      , code       => Code
                      , call_data  => CallData
                      , fee        => 1000000
@@ -883,7 +883,7 @@ call_contract_with_calldata(Caller, ContractKey, Type, Calldata, Options, S) ->
     CallTx   = aect_test_utils:call_tx(Caller, ContractKey,
                 maps:merge(
                 #{ nonce      => Nonce
-                 , vm_version => ?AEVM_01_Sophia_01
+                 , vm_version => ?CURRENT_AEVM_SOPHIA
                  , call_data  => Calldata
                  , fee        => 1000000
                  , amount     => 0
@@ -1068,6 +1068,7 @@ sophia_oracles(_Cfg) ->
     FixedTTL          = fun(Height) -> ?CHAIN_ABSOLUTE_TTL_MEMORY_ENCODING(Height) end,
     Acc               = ?call(new_account, 20000000),
     Ct = <<CtId:256>> = ?call(create_contract, Acc, oracles, {}, #{amount => 100000}),
+    BogusOracle       = <<123:256>>,
     QueryFee          = 100,
     TTL               = 15,
     CtId              = ?call(call_contract, Acc, Ct, registerOracle, word, {CtId, QueryFee, FixedTTL(TTL)}),
@@ -1076,6 +1077,7 @@ sophia_oracles(_Cfg) ->
                                 {Ct, Question, QueryFee, RelativeTTL(5), RelativeTTL(5)}, #{amount => QueryFee}),
     Question          = ?call(call_contract, Acc, Ct, getQuestion, string, {CtId, QId}),
     QueryFee          = ?call(call_contract, Acc, Ct, queryFee, word, Ct),
+    {error, _}        = ?call(call_contract, Acc, Ct, queryFee, word, BogusOracle),
     none              = ?call(call_contract, Acc, Ct, getAnswer, {option, word}, {CtId, QId}),
     {}                = ?call(call_contract, Acc, Ct, respond, {tuple, []}, {CtId, QId, 4001}),
     {some, 4001}      = ?call(call_contract, Acc, Ct, getAnswer, {option, word}, {CtId, QId}),
