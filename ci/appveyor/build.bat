@@ -5,21 +5,24 @@
 @rem Required vars:
 @rem    BUILD_STEP
 @rem    MSYS2_ROOT
+@rem    PLATFORM
 
 SETLOCAL ENABLEEXTENSIONS
 cd %APPVEYOR_BUILD_FOLDER%
 
+rem Set required vars defaults
+IF "%ERTS_VERSION%"=="" SET "ERTS_VERSION=9.3"
+IF "%MSYS2_ROOT%"=="" SET "MSYS2_ROOT=C:\msys64"
+IF "%PLATFORM%"=="" SET "PLATFORM=x64"
+IF "%BUILD_STEP%"=="" SET "BUILD_STEP=build"
+SET BASH_BIN="%MSYS2_ROOT%\usr\bin\bash"
+
 @echo Current time: %time%
 rem Set the paths appropriately
 
-call "C:\Program Files (x86)\Microsoft Visual Studio %VS_VERSION%\VC\vcvarsall.bat" %PLATFORM%
+call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\\vcvarsall.bat" %PLATFORM%
 @echo on
 SET PATH=%MSYS2_ROOT%\mingw64\bin;%MSYS2_ROOT%\usr\bin;%PATH%
-
-@echo Current time: %time%
-rem Maybe use cached build artifacts
-IF NOT EXIST "_build\default_%ERTS_VERSION%" GOTO BUILDSTART
-robocopy "_build\default_%ERTS_VERSION%" "_build\default" /MIR /COPYALL /NP /NS /NC /NFL /NDL
 
 :BUILDSTART
 GOTO BUILD_%BUILD_STEP%
@@ -27,16 +30,12 @@ GOTO BUILD_%BUILD_STEP%
 :BUILD_build
 @echo Current time: %time%
 rem Run build: build
-bash -lc "cd %BUILD_PATH% && make KIND=test local-build"
+%BASH_BIN% -lc "cd %BUILD_PATH% && make KIND=test local-build"
 
 GOTO BUILD_DONE
 
 :BUILD_
 :BUILD_DONE
-
-@echo Current time: %time%
-rem Mirror build artifacts
-robocopy "_build\default" "_build\default_%ERTS_VERSION%" /MIR /COPYALL /NP /NS /NC /NFL /NDL
 
 @echo Current time: %time%
 rem Finished build phase

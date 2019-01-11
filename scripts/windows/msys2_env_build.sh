@@ -53,9 +53,12 @@ WIN_MSVC=${WIN_MSVC_ROOT}/bin\\Hostx64\\x64
 PATH="/usr/local/bin:/usr/bin:/bin:/c/Windows/system32:/c/Windows:/c/Windows/System32/Wbem:${PATH}"
 PATH="${MSVC}:${ERL_TOP}/bin:${PATH}:${ERL_TOP}/erts-${ERTS_VERSION}/bin:${MSYS_ROOT}/mingw64/bin"
 
+MSYS_ROOT="${C_DRV}/msys64"
 WIN_MSYS_ROOT="${WIN_C_DRV}\\msys64"
 
 INCLUDE="${INCLUDE};${WIN_MSYS_ROOT}\\mingw64\\include;${WIN_MSYS_ROOT}\\usr\\include"
 LIB="${LIB};${WIN_MSYS_ROOT}\\mingw64\\lib;${WIN_MSYS_ROOT}\\mingw64\\bin;${WIN_ERL_TOP}\\usr\\lib;"
+CFLAGS="${CFLAGS} -I${MSYS_ROOT}/mingw64/include -I${MSYS_ROOT}/usr/include"
+LDFLAGS="${LDFLAGS} -L${MSYS_ROOT}/mingw64/lib -L${MSYS_ROOT}/mingw64/bin -L${ERL_TOP}/usr/lib"
 
-export INCLUDE LIB PATH ERL_TOP WIN_ERL_TOP COMSPEC
+export INCLUDE LIB PATH ERL_TOP WIN_ERL_TOP COMSPEC CFLAGS LDFLAGS
