@@ -793,8 +793,8 @@ workflows:
       - osx_package:
           filters:
             branches:
-              only:
-                - master
+              ignore:
+                - system-tests
             tags:
               only: *tag_regex
 
